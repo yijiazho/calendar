@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: calendar-aggregator
+
+server:
+  port: 8080
+
+google:
+  calendar:
+    application-name: Calendar Aggregator
+    credentials-file: ${GOOGLE_CREDENTIALS_FILE}
+    scopes:
+      - https://www.googleapis.com/auth/calendar
+
+outlook:
+  client-id: ${OUTLOOK_CLIENT_ID}
+  client-secret: ${OUTLOOK_CLIENT_SECRET}
+  tenant-id: ${OUTLOOK_TENANT_ID}
+  scopes:
+    - Calendars.ReadWrite
+    - offline_access
+
+logging:
+  level:
+    com.calendar: DEBUG 
