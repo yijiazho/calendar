@@ -9,11 +9,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -34,6 +37,10 @@ class GoogleCalendarProviderTest {
     @Mock
     private ConversionService conversionService;
 
+    @Mock
+    private OAuth2AuthorizedClient mockOAuth2AuthorizedClient;
+
+    @Spy
     @InjectMocks
     private GoogleCalendarProvider googleCalendarProvider;
 
@@ -58,8 +65,19 @@ class GoogleCalendarProviderTest {
         when(mockEvents.update(anyString(), anyString(), any(Event.class))).thenReturn(mockEventsUpdate);
         when(mockEvents.delete(anyString(), anyString())).thenReturn(mockEventsDelete);
 
-        // Set the calendarService field using reflection
-        ReflectionTestUtils.setField(googleCalendarProvider, "calendarService", calendarService);
+        // Mock OAuth2AccessToken
+        org.springframework.security.oauth2.core.OAuth2AccessToken mockToken = mock(org.springframework.security.oauth2.core.OAuth2AccessToken.class);
+        when(mockToken.getTokenValue()).thenReturn("dummy-token");
+        when(mockToken.getExpiresAt()).thenReturn(java.time.Instant.now().plusSeconds(3600));
+        when(mockOAuth2AuthorizedClient.getAccessToken()).thenReturn(mockToken);
+
+        // Set required fields for isConfigured()
+        org.springframework.test.util.ReflectionTestUtils.setField(googleCalendarProvider, "clientId", "dummy");
+        org.springframework.test.util.ReflectionTestUtils.setField(googleCalendarProvider, "clientSecret", "dummy");
+        org.springframework.test.util.ReflectionTestUtils.setField(googleCalendarProvider, "applicationName", "dummy");
+
+        // Mock getCalendarService to return the mock calendarService
+        doReturn(calendarService).when(googleCalendarProvider).getCalendarService(any());
     }
 
     @Test
@@ -81,7 +99,7 @@ class GoogleCalendarProviderTest {
             .thenReturn(calendarEvent);
 
         // Act
-        List<CalendarEvent> result = googleCalendarProvider.fetchEvents(start, end);
+        List<CalendarEvent> result = googleCalendarProvider.fetchEvents(mockOAuth2AuthorizedClient, start, end);
 
         // Assert
         assertNotNull(result);
@@ -104,7 +122,7 @@ class GoogleCalendarProviderTest {
         when(conversionService.convert(googleEvent, CalendarEvent.class)).thenReturn(expectedEvent);
 
         // Act
-        CalendarEvent result = googleCalendarProvider.createEvent(inputEvent);
+        CalendarEvent result = googleCalendarProvider.createEvent(mockOAuth2AuthorizedClient, inputEvent);
 
         // Assert
         assertNotNull(result);
@@ -125,7 +143,7 @@ class GoogleCalendarProviderTest {
         when(conversionService.convert(googleEvent, CalendarEvent.class)).thenReturn(expectedEvent);
 
         // Act
-        CalendarEvent result = googleCalendarProvider.updateEvent(inputEvent);
+        CalendarEvent result = googleCalendarProvider.updateEvent(mockOAuth2AuthorizedClient, inputEvent);
 
         // Assert
         assertNotNull(result);
@@ -139,7 +157,7 @@ class GoogleCalendarProviderTest {
         String eventId = "test-id";
 
         // Act
-        googleCalendarProvider.deleteEvent(eventId);
+        googleCalendarProvider.deleteEvent(mockOAuth2AuthorizedClient, eventId);
 
         // Assert
         verify(mockEventsDelete).execute();

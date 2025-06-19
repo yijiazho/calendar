@@ -2,39 +2,72 @@ package com.calendar.service;
 
 import com.calendar.enums.CalendarSource;
 import com.calendar.model.CalendarEvent;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.calendar.Calendar;
+import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.OAuth2Credentials;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
 public class GoogleCalendarProvider implements CalendarProvider {
     
-    @Value("${google.calendar.credentials-file}")
-    private String credentialsFilePath;
+    @Value("${GOOGLE_CLIENT_ID}")
+    private String clientId;
     
-    @Value("${google.calendar.application-name}")
+    @Value("${GOOGLE_CLIENT_SECRET}")
+    private String clientSecret;
+    
+    @Value("${GOOGLE_APPLICATION_NAME}")
     private String applicationName;
-    
-    private Calendar calendarService;
     
     @Autowired
     private ConversionService conversionService;
     
+    protected Calendar getCalendarService(OAuth2AuthorizedClient client) {
+        OAuth2Credentials credentials = OAuth2Credentials.create(
+            new AccessToken(
+                client.getAccessToken().getTokenValue(),
+                java.util.Date.from(client.getAccessToken().getExpiresAt())
+            )
+        );
+
+        return new Calendar.Builder(
+            new NetHttpTransport(),
+            new GsonFactory(),
+            new HttpCredentialsAdapter(credentials))
+            .setApplicationName(applicationName)
+            .build();
+    }
+    
     @Override
-    public List<CalendarEvent> fetchEvents(LocalDateTime start, LocalDateTime end) {
+    public List<CalendarEvent> fetchEvents(OAuth2AuthorizedClient client, LocalDateTime start, LocalDateTime end) {
         try {
+            Calendar calendarService = getCalendarService(client);
             List<CalendarEvent> events = new ArrayList<>();
+            
+            java.util.Date startDate = java.util.Date.from(start.atZone(java.time.ZoneId.systemDefault()).toInstant());
+            java.util.Date endDate = java.util.Date.from(end.atZone(java.time.ZoneId.systemDefault()).toInstant());
+
+            com.google.api.client.util.DateTime startDateTime = new com.google.api.client.util.DateTime(startDate);
+            com.google.api.client.util.DateTime endDateTime = new com.google.api.client.util.DateTime(endDate);
+
             com.google.api.services.calendar.model.Events googleEvents = calendarService.events()
                 .list("primary")
-                .setTimeMin(com.google.api.client.util.DateTime.parseRfc3339(start.toString()))
-                .setTimeMax(com.google.api.client.util.DateTime.parseRfc3339(end.toString()))
+                .setTimeMin(startDateTime)
+                .setTimeMax(endDateTime)
                 .setOrderBy("startTime")
                 .setSingleEvents(true)
                 .execute();
@@ -51,8 +84,9 @@ public class GoogleCalendarProvider implements CalendarProvider {
     }
     
     @Override
-    public CalendarEvent createEvent(CalendarEvent event) {
+    public CalendarEvent createEvent(OAuth2AuthorizedClient client, CalendarEvent event) {
         try {
+            Calendar calendarService = getCalendarService(client);
             Event googleEvent = conversionService.convert(event, Event.class);
             Event createdEvent = calendarService.events()
                 .insert("primary", googleEvent)
@@ -64,8 +98,9 @@ public class GoogleCalendarProvider implements CalendarProvider {
     }
     
     @Override
-    public CalendarEvent updateEvent(CalendarEvent event) {
+    public CalendarEvent updateEvent(OAuth2AuthorizedClient client, CalendarEvent event) {
         try {
+            Calendar calendarService = getCalendarService(client);
             Event googleEvent = conversionService.convert(event, Event.class);
             Event updatedEvent = calendarService.events()
                 .update("primary", event.getId(), googleEvent)
@@ -77,8 +112,9 @@ public class GoogleCalendarProvider implements CalendarProvider {
     }
     
     @Override
-    public void deleteEvent(String eventId) {
+    public void deleteEvent(OAuth2AuthorizedClient client, String eventId) {
         try {
+            Calendar calendarService = getCalendarService(client);
             calendarService.events().delete("primary", eventId).execute();
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete event from Google Calendar", e);
@@ -92,6 +128,6 @@ public class GoogleCalendarProvider implements CalendarProvider {
     
     @Override
     public boolean isConfigured() {
-        return calendarService != null;
+        return clientId != null && clientSecret != null && applicationName != null;
     }
 } 

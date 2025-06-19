@@ -11,8 +11,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Answers;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.mockito.Spy;
+import static org.mockito.Mockito.doReturn;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -24,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class OutlookCalendarProviderTest {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -32,12 +38,28 @@ class OutlookCalendarProviderTest {
     @Mock
     private ConversionService conversionService;
 
+    @Mock
+    private OAuth2AuthorizedClient mockOAuth2AuthorizedClient;
+
+    @Spy
     @InjectMocks
     private OutlookCalendarProvider outlookCalendarProvider;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(outlookCalendarProvider, "graphClient", graphClient);
+        // Mock OAuth2AccessToken
+        org.springframework.security.oauth2.core.OAuth2AccessToken mockToken = mock(org.springframework.security.oauth2.core.OAuth2AccessToken.class);
+        when(mockToken.getTokenValue()).thenReturn("dummy-token");
+        when(mockToken.getExpiresAt()).thenReturn(java.time.Instant.now().plusSeconds(3600));
+        when(mockOAuth2AuthorizedClient.getAccessToken()).thenReturn(mockToken);
+
+        // Set required fields for isConfigured()
+        org.springframework.test.util.ReflectionTestUtils.setField(outlookCalendarProvider, "clientId", "dummy");
+        org.springframework.test.util.ReflectionTestUtils.setField(outlookCalendarProvider, "clientSecret", "dummy");
+        org.springframework.test.util.ReflectionTestUtils.setField(outlookCalendarProvider, "tenantId", "dummy");
+
+        // Mock getGraphClient to return the mock graphClient
+        doReturn(graphClient).when(outlookCalendarProvider).getGraphClient(any());
     }
 
     @Test
@@ -54,7 +76,7 @@ class OutlookCalendarProviderTest {
         when(conversionService.convert(any(Event.class), eq(CalendarEvent.class)))
             .thenReturn(calendarEvent);
 
-        List<CalendarEvent> result = outlookCalendarProvider.fetchEvents(start, end);
+        List<CalendarEvent> result = outlookCalendarProvider.fetchEvents(mockOAuth2AuthorizedClient, start, end);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -73,7 +95,7 @@ class OutlookCalendarProviderTest {
         when(conversionService.convert(outlookEvent, CalendarEvent.class))
             .thenReturn(expectedEvent);
 
-        CalendarEvent result = outlookCalendarProvider.createEvent(inputEvent);
+        CalendarEvent result = outlookCalendarProvider.createEvent(mockOAuth2AuthorizedClient, inputEvent);
 
         assertNotNull(result);
         assertEquals(expectedEvent, result);
@@ -93,7 +115,7 @@ class OutlookCalendarProviderTest {
         when(conversionService.convert(outlookEvent, CalendarEvent.class))
             .thenReturn(expectedEvent);
 
-        CalendarEvent result = outlookCalendarProvider.updateEvent(inputEvent);
+        CalendarEvent result = outlookCalendarProvider.updateEvent(mockOAuth2AuthorizedClient, inputEvent);
 
         assertNotNull(result);
         assertEquals(expectedEvent, result);
@@ -104,7 +126,7 @@ class OutlookCalendarProviderTest {
     void deleteEvent_Success() {
         String eventId = "test-id";
 
-        outlookCalendarProvider.deleteEvent(eventId);
+        outlookCalendarProvider.deleteEvent(mockOAuth2AuthorizedClient, eventId);
 
         verify(graphClient.me().events(eventId).buildRequest()).delete();
     }
