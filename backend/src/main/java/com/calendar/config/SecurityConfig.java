@@ -1,5 +1,6 @@
 package com.calendar.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,10 +12,20 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Value("${spring.security.enabled:true}")
+    private boolean securityEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .authorizeHttpRequests(authorize -> authorize
+        if (!securityEnabled) {
+            // Disable security for local development
+            http.csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authorize -> authorize
+                    .anyRequest().permitAll()
+                );
+        } else {
+            // Production security configuration
+            http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
                 .anyRequest().authenticated()
             )
@@ -29,6 +40,7 @@ public class SecurityConfig {
                 .clearAuthentication(true)
                 .deleteCookies("JSESSIONID")
             );
+        }
         
         return http.build();
     }

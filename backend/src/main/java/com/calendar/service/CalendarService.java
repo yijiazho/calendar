@@ -4,6 +4,7 @@ import com.calendar.model.CalendarEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -16,7 +17,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class CalendarService {
+@ConditionalOnProperty(name = "spring.security.enabled", havingValue = "true", matchIfMissing = true)
+public class CalendarService implements ICalendarService {
     
     private static final Logger logger = LoggerFactory.getLogger(CalendarService.class);
     private final List<CalendarProvider> calendarProviders;
@@ -44,9 +46,7 @@ public class CalendarService {
         return authorizedClients.get(userId);
     }
     
-    /**
-     * Fetch events from all configured calendar providers for a specific user
-     */
+    @Override
     public List<CalendarEvent> fetchAllEvents(String userId, LocalDateTime start, LocalDateTime end) {
         List<CalendarEvent> allEvents = new ArrayList<>();
         OAuth2AuthorizedClient client = getAuthorizedClient(userId);
@@ -71,9 +71,7 @@ public class CalendarService {
         return allEvents;
     }
     
-    /**
-     * Create an event in all configured calendar providers for a specific user
-     */
+    @Override
     public List<CalendarEvent> createEvent(String userId, CalendarEvent event) {
         List<CalendarEvent> createdEvents = new ArrayList<>();
         OAuth2AuthorizedClient client = getAuthorizedClient(userId);
@@ -98,9 +96,7 @@ public class CalendarService {
         return createdEvents;
     }
     
-    /**
-     * Update an event in all configured calendar providers for a specific user
-     */
+    @Override
     public List<CalendarEvent> updateEvent(String userId, CalendarEvent event) {
         List<CalendarEvent> updatedEvents = new ArrayList<>();
         OAuth2AuthorizedClient client = getAuthorizedClient(userId);
@@ -125,9 +121,7 @@ public class CalendarService {
         return updatedEvents;
     }
     
-    /**
-     * Delete an event from all configured calendar providers for a specific user
-     */
+    @Override
     public void deleteEvent(String userId, String eventId) {
         OAuth2AuthorizedClient client = getAuthorizedClient(userId);
         
@@ -148,9 +142,7 @@ public class CalendarService {
         }
     }
     
-    /**
-     * Get list of configured calendar providers
-     */
+    @Override
     public List<String> getConfiguredProviders() {
         List<String> providers = new ArrayList<>();
         for (CalendarProvider provider : calendarProviders) {

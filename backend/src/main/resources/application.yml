@@ -1,9 +1,18 @@
 spring:
   application:
     name: calendar-aggregator
+  # Security configuration - can be overridden with profiles
+  security:
+    enabled: true
 
 server:
   port: 8080
+
+# Local development settings (can be overridden with --spring.profiles.active=local)
+local:
+  security:
+    enabled: false
+  debug: true
 
 google:
   calendar:
@@ -22,4 +31,22 @@ outlook:
 
 logging:
   level:
-    com.calendar: DEBUG 
+    com.calendar: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Profile-specific configurations
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  security:
+    enabled: false
+  logging:
+    level:
+      com.calendar: DEBUG
+      org.springframework.web: DEBUG
+      org.springframework.security: DEBUG 

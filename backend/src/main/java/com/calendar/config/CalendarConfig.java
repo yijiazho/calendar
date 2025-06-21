@@ -1,5 +1,6 @@
 package com.calendar.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ public class CalendarConfig {
     private Outlook outlook;
 
     @Bean
+    @ConditionalOnProperty(name = "spring.security.enabled", havingValue = "true", matchIfMissing = true)
     public OAuth2AuthorizedClientManager authorizedClientManager(
             ClientRegistrationRepository clientRegistrationRepository,
             OAuth2AuthorizedClientRepository authorizedClientRepository) {
@@ -39,6 +41,7 @@ public class CalendarConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "spring.security.enabled", havingValue = "true", matchIfMissing = true)
     public WebClient webClient(OAuth2AuthorizedClientManager authorizedClientManager) {
         ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
                 new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
@@ -54,14 +57,37 @@ public class CalendarConfig {
         private String applicationName;
 
         // Getters and setters
-        public String getClientId() { return clientId; }
-        public void setClientId(String clientId) { this.clientId = clientId; }
-        public String getClientSecret() { return clientSecret; }
-        public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
-        public String getRedirectUri() { return redirectUri; }
-        public void setRedirectUri(String redirectUri) { this.redirectUri = redirectUri; }
-        public String getApplicationName() { return applicationName; }
-        public void setApplicationName(String applicationName) { this.applicationName = applicationName; }
+        public String getClientId() { 
+            return clientId; 
+        }
+
+        public void setClientId(String clientId) {
+             this.clientId = clientId;
+        }
+
+        public String getClientSecret() {
+             return clientSecret; 
+        }
+
+        public void setClientSecret(String clientSecret) { 
+            this.clientSecret = clientSecret; 
+        }
+
+        public String getRedirectUri() {
+             return redirectUri; 
+        }
+
+        public void setRedirectUri(String redirectUri) { 
+            this.redirectUri = redirectUri; 
+        }
+
+        public String getApplicationName() { 
+            return applicationName; 
+        }
+
+        public void setApplicationName(String applicationName) { 
+            this.applicationName = applicationName; 
+        }
     }
 
     public static class Outlook {
@@ -71,19 +97,53 @@ public class CalendarConfig {
         private String tenantId;
 
         // Getters and setters
-        public String getClientId() { return clientId; }
-        public void setClientId(String clientId) { this.clientId = clientId; }
-        public String getClientSecret() { return clientSecret; }
-        public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
-        public String getRedirectUri() { return redirectUri; }
-        public void setRedirectUri(String redirectUri) { this.redirectUri = redirectUri; }
-        public String getTenantId() { return tenantId; }
-        public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+        public String getClientId() { 
+            return clientId; 
+        }
+
+        public void setClientId(String clientId) { 
+            this.clientId = clientId; 
+        }
+
+        public String getClientSecret() { 
+            return clientSecret; 
+        }
+
+        public void setClientSecret(String clientSecret) { 
+            this.clientSecret = clientSecret; 
+        }
+
+        public String getRedirectUri() { 
+            return redirectUri; 
+        }
+
+        public void setRedirectUri(String redirectUri) { 
+            this.redirectUri = redirectUri; 
+        }
+
+        public String getTenantId() { 
+            return tenantId; 
+        }
+
+        public void setTenantId(String tenantId) { 
+            this.tenantId = tenantId; 
+        }
     }
 
     // Getters and setters for main properties
-    public Google getGoogle() { return google; }
-    public void setGoogle(Google google) { this.google = google; }
-    public Outlook getOutlook() { return outlook; }
-    public void setOutlook(Outlook outlook) { this.outlook = outlook; }
+    public Google getGoogle() { 
+        return google; 
+    }
+
+    public void setGoogle(Google google) { 
+        this.google = google; 
+    }
+
+    public Outlook getOutlook() { 
+        return outlook; 
+    }
+
+    public void setOutlook(Outlook outlook) { 
+        this.outlook = outlook; 
+    }
 } 
