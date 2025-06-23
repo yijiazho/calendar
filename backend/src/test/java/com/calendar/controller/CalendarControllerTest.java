@@ -14,13 +14,26 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -36,11 +49,19 @@ class CalendarControllerTest {
     @MockBean
     private CalendarService calendarService;
 
+    @MockBean
+    private OAuth2AuthorizedClientService authorizedClientService;
+
+    @MockBean
+    private ClientRegistrationRepository clientRegistrationRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     private CalendarEventDto sampleDto;
     private CalendarEvent sampleEvent;
+    private OAuth2AuthorizedClient mockClient;
+    private OAuth2AuthenticationToken mockAuthToken;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +86,41 @@ class CalendarControllerTest {
         sampleEvent.setAllDay(false);
         sampleEvent.setStatus(Status.CONFIRMED);
         sampleEvent.setCalendarSource(CalendarSource.GOOGLE);
+
+        // Mock OAuth2 components
+        mockClient = mock(OAuth2AuthorizedClient.class);
+        mockAuthToken = mock(OAuth2AuthenticationToken.class);
+        
+        // Mock access token
+        OAuth2AccessToken accessToken = new OAuth2AccessToken(
+            OAuth2AccessToken.TokenType.BEARER,
+            "mock-token",
+            Instant.now(),
+            Instant.now().plusSeconds(3600)
+        );
+        when(mockClient.getAccessToken()).thenReturn(accessToken);
+        
+        // Mock client registration
+        ClientRegistration mockRegistration = mock(ClientRegistration.class);
+        when(mockRegistration.getRegistrationId()).thenReturn("google");
+        when(mockClient.getClientRegistration()).thenReturn(mockRegistration);
+        
+        // Mock OAuth2 user
+        OAuth2User mockUser = mock(OAuth2User.class);
+        when(mockUser.getName()).thenReturn("test-user");
+        when(mockUser.getAttributes()).thenReturn(Map.of("sub", "test-user-id"));
+        when(mockAuthToken.getPrincipal()).thenReturn(mockUser);
+        when(mockAuthToken.getName()).thenReturn("test-user");
+        when(mockAuthToken.getAuthorizedClientRegistrationId()).thenReturn("google");
+        
+        // Mock authorized client service
+        when(authorizedClientService.loadAuthorizedClient(anyString(), anyString()))
+            .thenReturn(mockClient);
+            
+        // Set up SecurityContext with mock authentication
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(mockAuthToken);
+        SecurityContextHolder.setContext(securityContext);
     }
 
     @Test
@@ -73,7 +129,6 @@ class CalendarControllerTest {
                 .thenReturn(List.of(sampleEvent));
 
         mockMvc.perform(get("/api/calendar/events")
-                .param("userId", "user1")
                 .param("start", "2024-01-01T00:00:00")
                 .param("end", "2024-01-02T00:00:00"))
                 .andExpect(status().isOk())
@@ -87,7 +142,6 @@ class CalendarControllerTest {
                 .thenReturn(List.of(sampleEvent));
 
         mockMvc.perform(post("/api/calendar/events")
-                .param("userId", "user1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(sampleDto)))
                 .andExpect(status().isOk())
@@ -101,7 +155,6 @@ class CalendarControllerTest {
                 .thenReturn(List.of(sampleEvent));
 
         mockMvc.perform(put("/api/calendar/events")
-                .param("userId", "user1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(sampleDto)))
                 .andExpect(status().isOk())
@@ -111,10 +164,22 @@ class CalendarControllerTest {
 
     @Test
     void testDeleteEvent() throws Exception {
-        mockMvc.perform(delete("/api/calendar/events/1")
-                .param("userId", "user1"))
+        mockMvc.perform(delete("/api/calendar/events/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
                 .andExpect(jsonPath("$.message").value("Event deleted successfully"));
+    }
+
+    @Test
+    void testGetCalendarStatus() throws Exception {
+        when(calendarService.getConfiguredProviders())
+            .thenReturn(List.of("google", "outlook"));
+
+        mockMvc.perform(get("/api/calendar/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.authenticated").value(true))
+                .andExpect(jsonPath("$.data.provider").value("google"))
+                .andExpect(jsonPath("$.data.configuredProviders").isArray());
     }
 } 
