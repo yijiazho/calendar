@@ -22,6 +22,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/health").permitAll()
                 .requestMatchers("/api/health/**").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/api/calendar/**").authenticated()

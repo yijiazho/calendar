@@ -22,13 +22,13 @@ import java.util.List;
 @Service
 public class GoogleCalendarProvider implements CalendarProvider {
     
-    @Value("${GOOGLE_CLIENT_ID}")
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
     
-    @Value("${GOOGLE_CLIENT_SECRET}")
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String clientSecret;
     
-    @Value("${GOOGLE_APPLICATION_NAME}")
+    @Value("${google.calendar.application-name}")
     private String applicationName;
     
     @Autowired

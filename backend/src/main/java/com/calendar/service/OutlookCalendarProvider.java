@@ -25,13 +25,13 @@ import java.util.List;
 @Service
 public class OutlookCalendarProvider implements CalendarProvider {
     
-    @Value("${OUTLOOK_CLIENT_ID}")
+    @Value("${spring.security.oauth2.client.registration.outlook.client-id}")
     private String clientId;
     
-    @Value("${OUTLOOK_CLIENT_SECRET}")
+    @Value("${spring.security.oauth2.client.registration.outlook.client-secret}")
     private String clientSecret;
     
-    @Value("${OUTLOOK_TENANT_ID}")
+    @Value("${outlook.tenant-id}")
     private String tenantId;
     
     @Autowired
