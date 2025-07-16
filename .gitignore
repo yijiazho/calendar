@@ -136,3 +136,4 @@ coverage/
 *.temp
 
 application.yml
+constants.ts
