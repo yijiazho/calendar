@@ -20,7 +20,7 @@ spring:
           outlook:
             client-id: ${OUTLOOK_CLIENT_ID:test-outlook-client-id}
             client-secret: ${OUTLOOK_CLIENT_SECRET:test-outlook-client-secret}
-            redirect-uri: ${OUTLOOK_REDIRECT_URI:http://localhost:8080/auth/outlook/callback}
+            redirect-uri: ${OUTLOOK_REDIRECT_URI:http://localhost:8080/login/oauth2/code/outlook}
             scope:
               - Calendars.ReadWrite
               - offline_access

@@ -1,120 +1,120 @@
-# Calendar Aggregator & Booking Service
+# Calendar Aggregator
 
-A personal calendar aggregation and booking system that consolidates multiple calendar sources, shows unified availability, and allows external users to book appointments directly into your schedule.
+## Overview
+A full-stack calendar aggregator application with Java Spring Boot 3 (backend) and React TypeScript (frontend). Supports OAuth2 login with Google and Outlook, and aggregates calendar events.
 
-## Project Structure
+---
 
-```
-calendar/
-├── backend/                 # Spring Boot Backend
-│   ├── src/
-│   │   └── main/
-│   │       └── java/
-│   │           └── com/
-│   │               └── calendar/
-│   │                   ├── CalendarApplication.java
-│   │                   ├── config/
-│   │                   ├── controller/
-│   │                   ├── converter/
-│   │                   ├── dto/
-│   │                   ├── enums/
-│   │                   ├── exception/
-│   │                   ├── model/
-│   │                   └── service/
-│   ├── .env.example         # Example environment file
-│   └── pom.xml
-├── frontend/               # React TypeScript Frontend
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── App.css
-│   │   ├── index.tsx
-│   │   └── index.css
-│   ├── package.json
-│   └── tsconfig.json
-├── start-services.bat      # Script to start both services
-└── README.md
-```
+## Backend (Spring Boot)
 
-## Prerequisites
+### Configuration
+- All configuration is now managed in `backend/src/main/resources/application.yml`.
+- **.env files are no longer used.**
+- OAuth2 credentials and redirect URIs for Google and Outlook are set in `application.yml` under `spring.security.oauth2.client.registration`.
 
-- Java 17 or higher
-- Node.js 16 or higher
-- Maven
-- npm
-
-## Setup Instructions
-
-### Backend Setup
-
-1.  **Environment Variables:**
-    Create a `.env` file in the `backend` directory. You can copy the structure from `.env.example` if it exists. Populate it with your OAuth2 credentials from Google and Outlook.
-
-    ```bash
-    # .env file content
-    
-    # Google OAuth2 Credentials
-    GOOGLE_CLIENT_ID=your-google-client-id
-    GOOGLE_CLIENT_SECRET=your-google-client-secret
-    GOOGLE_REDIRECT_URI=http://localhost:8080/login/oauth2/code/google
-    GOOGLE_APPLICATION_NAME=Your-Application-Name
-
-    # Outlook OAuth2 Credentials
-    OUTLOOK_CLIENT_ID=your-outlook-client-id
-    OUTLOOK_CLIENT_SECRET=your-outlook-client-secret
-    OUTLOOK_REDIRECT_URI=http://localhost:8080/login/oauth2/code/outlook
-    OUTLOOK_TENANT_ID=your-outlook-tenant-id  # (usually 'common' for multi-tenant apps)
-    ```
-
-2.  **Navigate to the backend directory:**
-    ```bash
-    cd backend
-    ```
-
-3.  **Install dependencies:**
-    ```bash
-    mvn install
-    ```
-
-4.  **Run the application:**
-    ```bash
-    mvn spring-boot:run
-    ```
-
-The backend will be available at: http://localhost:8080
-
-### Frontend Setup
-
-1.  Navigate to the frontend directory:
-    ```bash
-    cd frontend
-    ```
-
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-3.  Run the application:
-    ```bash
-    npm start
-    ```
-
-The frontend will be available at: http://localhost:3000
-
-### Quick Start (Windows)
-
-You can use the provided batch file to start both services simultaneously:
-
-```bash
-start-services.bat
+#### Example `application.yml` (snippet):
+```yaml
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: <your-google-client-id>
+            client-secret: <your-google-client-secret>
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            scope:
+              - openid
+              - email
+              - profile
+              - https://www.googleapis.com/auth/calendar
+              - https://www.googleapis.com/auth/calendar.events
+          outlook:
+            client-id: <your-outlook-client-id>
+            client-secret: <your-outlook-client-secret>
+            redirect-uri: http://localhost:8080/login/oauth2/code/outlook
+            scope:
+              - Calendars.ReadWrite
+              - offline_access
 ```
 
-This will:
-1.  Start the Spring Boot backend
-2.  Wait for 10 seconds to let the backend initialize
-3.  Start the React frontend
+- **Redirect URIs:**
+  - Google: `http://localhost:8080/login/oauth2/code/google`
+  - Outlook: `http://localhost:8080/login/oauth2/code/outlook`
+- Make sure to register these URIs in the Google and Microsoft developer consoles for your OAuth2 apps.
+
+### Running the Backend
+```sh
+cd backend
+./mvnw spring-boot:run
+```
+
+---
+
+## Frontend (React)
+
+### Configuration
+- All OAuth2 and API configuration is now managed in `frontend/src/config/constants.ts`.
+- **.env files are no longer used.**
+
+#### Example `constants.ts` (snippet):
+```ts
+export const API_BASE_URL = 'http://localhost:8080';
+
+export const GOOGLE_OAUTH = {
+  clientId: '<your-google-client-id>',
+  clientSecret: '<your-google-client-secret>',
+  redirectUri: 'http://localhost:8080/login/oauth2/code/google',
+  scope: [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/calendar.events',
+  ],
+  authorizationUri: 'https://accounts.google.com/o/oauth2/auth',
+  tokenUri: 'https://oauth2.googleapis.com/token',
+  userInfoUri: 'https://www.googleapis.com/oauth2/v3/userinfo',
+};
+
+export const OUTLOOK_OAUTH = {
+  clientId: '<your-outlook-client-id>',
+  clientSecret: '<your-outlook-client-secret>',
+  redirectUri: 'http://localhost:8080/login/oauth2/code/outlook',
+  scope: [
+    'Calendars.ReadWrite',
+    'offline_access',
+  ],
+  authorizationUri: 'https://login.microsoftonline.com/<your-tenant-id>/oauth2/v2.0/authorize',
+  tokenUri: 'https://login.microsoftonline.com/<your-tenant-id>/oauth2/v2.0/token',
+  userInfoUri: 'https://graph.microsoft.com/v1.0/me',
+  tenantId: '<your-tenant-id>',
+};
+
+export const CALENDAR_API = {
+  events: '/api/calendar/events',
+};
+```
+
+### Running the Frontend
+```sh
+cd frontend
+npm install
+npm start
+```
+
+---
+
+## OAuth2 Setup
+- Register your app in the Google and Microsoft developer consoles.
+- Set the redirect URIs to:
+  - `http://localhost:8080/login/oauth2/code/google` (Google)
+  - `http://localhost:8080/login/oauth2/code/outlook` (Outlook)
+- Copy the client IDs and secrets into both `application.yml` (backend) and `constants.ts` (frontend).
+
+---
+
+## Development Scripts
+- Use `start-services.bat` or `debug-services.bat` to run both backend and frontend together (Windows only).
+
+---
 
 ## Available Endpoints
 
@@ -132,33 +132,8 @@ This will:
     -   `PUT /api/calendar/events` - Updates an existing event.
     -   `DELETE /api/calendar/events/{id}` - Deletes an event.
 
-## Development
+---
 
-### Backend Development
-
-The backend is built with:
--   Spring Boot 3.2.3
--   Java 17
--   Maven for dependency management
--   Spring Security for OAuth2 authentication
--   Spring Data JPA
-
-### Frontend Development
-
-The frontend is built with:
--   React 18
--   TypeScript
--   Create React App
-
-## Project Status
-
-Currently in Phase 1 (MVP) development. Features implemented:
--   Basic project structure
--   Health check endpoint
--   Basic frontend setup
--   OAuth2 authentication for Google and Outlook
--   Backend services for calendar event management
-
-## Future Improvements
-
-See `project_requirements_document.md` for detailed information about planned features and improvements. 
+## Notes
+- All sensitive credentials are now managed in `application.yml` and `constants.ts`. Do **not** commit real secrets to version control.
+- For production, use environment variables or a secure secrets manager for credentials. 
